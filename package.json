@@ -1,0 +1,30 @@
+{
+  "name": "payment-health-monitor",
+  "version": "1.0.0",
+  "description": "Payment Health Monitoring Service — tracks PSP performance in real-time",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "generate-data": "tsx scripts/generate-test-data.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "fastify": "^5.2.1",
+    "@fastify/cors": "^11.0.0",
+    "better-sqlite3": "^11.7.0",
+    "zod": "^3.24.2",
+    "dotenv": "^16.4.7",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.12.0",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}
