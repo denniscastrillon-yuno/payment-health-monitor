@@ -1,6 +1,6 @@
 import { TransactionRepository } from '../infrastructure/repositories/transaction.repository';
 import { buildPSPMetrics, calculateP95, calculateHealthScore, calculateTrend, calculateTrendForSuccessRate } from '../domain/metrics';
-import { PSPMetrics, TimeRange, PaymentMethodMetrics, TrendData, PSPHealthScore, AggregatedRow } from '../domain/types';
+import { PSPMetrics, TimeRange, PaymentMethodMetrics, TrendData, PSPHealthScore } from '../domain/types';
 import { evaluateHealth } from '../domain/alerts';
 import { config } from '../config';
 
@@ -20,12 +20,12 @@ export class MetricsService {
     };
   }
 
-  getAllPSPMetrics(timeRange?: TimeRange): { psps: Array<{ metrics: PSPMetrics; status: string; alerts: unknown[] }> } {
+  getAllPSPMetrics(timeRange?: TimeRange, paymentMethod?: string): { psps: Array<{ metrics: PSPMetrics; status: string; alerts: unknown[] }> } {
     const range = timeRange ?? this.getDefaultTimeRange();
-    const rows = this.repo.getAggregatedByPSP(range);
+    const rows = this.repo.getAggregatedByPSP(range, paymentMethod);
 
     const psps = rows.map(row => {
-      const responseTimes = this.repo.getResponseTimes(row.psp, range);
+      const responseTimes = this.repo.getResponseTimes(row.psp, range, paymentMethod);
       const p95 = calculateP95(responseTimes);
       const metrics = buildPSPMetrics(row, p95, range);
       const { status, alerts } = evaluateHealth(metrics);
@@ -35,13 +35,13 @@ export class MetricsService {
     return { psps };
   }
 
-  getPSPMetrics(psp: string, timeRange?: TimeRange): { metrics: PSPMetrics; status: string; alerts: unknown[] } | null {
+  getPSPMetrics(psp: string, timeRange?: TimeRange, paymentMethod?: string): { metrics: PSPMetrics; status: string; alerts: unknown[] } | null {
     const range = timeRange ?? this.getDefaultTimeRange();
-    const row = this.repo.getAggregatedForPSP(psp, range);
+    const row = this.repo.getAggregatedForPSP(psp, range, paymentMethod);
 
     if (!row) return null;
 
-    const responseTimes = this.repo.getResponseTimes(psp, range);
+    const responseTimes = this.repo.getResponseTimes(psp, range, paymentMethod);
     const p95 = calculateP95(responseTimes);
     const metrics = buildPSPMetrics(row, p95, range);
     const { status, alerts } = evaluateHealth(metrics);
@@ -63,29 +63,27 @@ export class MetricsService {
   }
 
   // Stretch B: Trend detection
-  getTrends(psp: string, timeRange?: TimeRange): TrendData | null {
+  getTrends(psp: string, timeRange?: TimeRange, paymentMethod?: string): TrendData | null {
     const range = timeRange ?? this.getDefaultTimeRange();
 
     // Current window
-    const currentRow = this.repo.getAggregatedForPSP(psp, range);
+    const currentRow = this.repo.getAggregatedForPSP(psp, range, paymentMethod);
     if (!currentRow) return null;
 
-    const currentResponseTimes = this.repo.getResponseTimes(psp, range);
+    const currentResponseTimes = this.repo.getResponseTimes(psp, range, paymentMethod);
     const currentP95 = calculateP95(currentResponseTimes);
     const currentMetrics = buildPSPMetrics(currentRow, currentP95, range);
 
     // Baseline: 24 hours before the current window
     const fromDate = new Date(range.from);
-    const toDate = new Date(range.to);
-    const windowMs = toDate.getTime() - fromDate.getTime();
 
     const baselineRange: TimeRange = {
       from: new Date(fromDate.getTime() - 24 * 60 * 60 * 1000).toISOString(),
       to: new Date(fromDate.getTime()).toISOString(),
     };
 
-    const baselineRow = this.repo.getAggregatedForPSP(psp, baselineRange);
-    const baselineResponseTimes = this.repo.getResponseTimes(psp, baselineRange);
+    const baselineRow = this.repo.getAggregatedForPSP(psp, baselineRange, paymentMethod);
+    const baselineResponseTimes = this.repo.getResponseTimes(psp, baselineRange, paymentMethod);
     const baselineP95 = calculateP95(baselineResponseTimes);
 
     const baselineMetrics = baselineRow
@@ -110,12 +108,12 @@ export class MetricsService {
   }
 
   // Stretch C: Health scores
-  getHealthScores(timeRange?: TimeRange): PSPHealthScore[] {
+  getHealthScores(timeRange?: TimeRange, paymentMethod?: string): PSPHealthScore[] {
     const range = timeRange ?? this.getDefaultTimeRange();
-    const rows = this.repo.getAggregatedByPSP(range);
+    const rows = this.repo.getAggregatedByPSP(range, paymentMethod);
 
     return rows.map(row => {
-      const responseTimes = this.repo.getResponseTimes(row.psp, range);
+      const responseTimes = this.repo.getResponseTimes(row.psp, range, paymentMethod);
       const p95 = calculateP95(responseTimes);
       const metrics = buildPSPMetrics(row, p95, range);
       const { status } = evaluateHealth(metrics);

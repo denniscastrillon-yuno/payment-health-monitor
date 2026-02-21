@@ -36,7 +36,7 @@ function randomBetween(min: number, max: number): number {
 }
 
 function generateAmount(): number {
-  return Math.round((Math.random() * 9990 + 10) * 100) / 100;
+  return Math.round((Math.random() * 199 + 1) * 100) / 100;
 }
 
 function generateTransaction(

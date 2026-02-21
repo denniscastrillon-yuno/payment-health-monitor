@@ -8,8 +8,8 @@ export class AlertService {
     this.metricsService = new MetricsService();
   }
 
-  getAlertSummary(timeRange?: TimeRange): AlertSummary {
-    const result = this.metricsService.getAllPSPMetrics(timeRange);
+  getAlertSummary(timeRange?: TimeRange, paymentMethod?: string): AlertSummary {
+    const result = this.metricsService.getAllPSPMetrics(timeRange, paymentMethod);
 
     const unhealthy: PSPHealth[] = [];
     const degraded: PSPHealth[] = [];

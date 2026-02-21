@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { IngestionService } from '../../services/ingestion.service';
 import { ZodError } from 'zod';
+import { broadcastEvent } from './events';
 
 export async function transactionRoutes(fastify: FastifyInstance): Promise<void> {
   const ingestionService = new IngestionService();
@@ -9,6 +10,7 @@ export async function transactionRoutes(fastify: FastifyInstance): Promise<void>
   fastify.post('/api/transactions', async (request, reply) => {
     try {
       const result = ingestionService.ingestSingle(request.body);
+      broadcastEvent('transaction', { transaction_id: result.transaction_id });
       return reply.status(201).send({
         success: true,
         data: result,
@@ -36,6 +38,10 @@ export async function transactionRoutes(fastify: FastifyInstance): Promise<void>
   fastify.post('/api/transactions/bulk', async (request, reply) => {
     try {
       const result = ingestionService.ingestBatch(request.body);
+      broadcastEvent('batch_ingested', {
+        total_received: result.total_received,
+        inserted: result.inserted,
+      });
       return reply.status(201).send({
         success: true,
         data: result,

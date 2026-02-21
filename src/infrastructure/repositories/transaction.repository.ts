@@ -41,8 +41,8 @@ export class TransactionRepository {
     return { inserted, errors };
   }
 
-  getAggregatedByPSP(timeRange: TimeRange): AggregatedRow[] {
-    const stmt = this.db.prepare(`
+  getAggregatedByPSP(timeRange: TimeRange, paymentMethod?: string): AggregatedRow[] {
+    let sql = `
       SELECT
         psp,
         COUNT(*) as total,
@@ -53,14 +53,21 @@ export class TransactionRepository {
         SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
         AVG(response_time_ms) as avg_response_time
       FROM transactions
-      WHERE created_at >= ? AND created_at <= ?
-      GROUP BY psp
-    `);
-    return stmt.all(timeRange.from, timeRange.to) as AggregatedRow[];
+      WHERE created_at >= ? AND created_at <= ?`;
+    const params: (string)[] = [timeRange.from, timeRange.to];
+
+    if (paymentMethod) {
+      sql += ` AND payment_method = ?`;
+      params.push(paymentMethod);
+    }
+
+    sql += ` GROUP BY psp`;
+    const stmt = this.db.prepare(sql);
+    return stmt.all(...params) as AggregatedRow[];
   }
 
-  getAggregatedForPSP(psp: string, timeRange: TimeRange): AggregatedRow | undefined {
-    const stmt = this.db.prepare(`
+  getAggregatedForPSP(psp: string, timeRange: TimeRange, paymentMethod?: string): AggregatedRow | undefined {
+    let sql = `
       SELECT
         psp,
         COUNT(*) as total,
@@ -71,10 +78,17 @@ export class TransactionRepository {
         SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
         AVG(response_time_ms) as avg_response_time
       FROM transactions
-      WHERE psp = ? AND created_at >= ? AND created_at <= ?
-      GROUP BY psp
-    `);
-    return stmt.get(psp, timeRange.from, timeRange.to) as AggregatedRow | undefined;
+      WHERE psp = ? AND created_at >= ? AND created_at <= ?`;
+    const params: string[] = [psp, timeRange.from, timeRange.to];
+
+    if (paymentMethod) {
+      sql += ` AND payment_method = ?`;
+      params.push(paymentMethod);
+    }
+
+    sql += ` GROUP BY psp`;
+    const stmt = this.db.prepare(sql);
+    return stmt.get(...params) as AggregatedRow | undefined;
   }
 
   getAggregatedByPaymentMethod(psp: string, timeRange: TimeRange): AggregatedRow[] {
@@ -96,14 +110,21 @@ export class TransactionRepository {
     return stmt.all(psp, timeRange.from, timeRange.to) as AggregatedRow[];
   }
 
-  getResponseTimes(psp: string, timeRange: TimeRange): number[] {
-    const stmt = this.db.prepare(`
+  getResponseTimes(psp: string, timeRange: TimeRange, paymentMethod?: string): number[] {
+    let sql = `
       SELECT response_time_ms
       FROM transactions
-      WHERE psp = ? AND created_at >= ? AND created_at <= ?
-      ORDER BY response_time_ms ASC
-    `);
-    const rows = stmt.all(psp, timeRange.from, timeRange.to) as { response_time_ms: number }[];
+      WHERE psp = ? AND created_at >= ? AND created_at <= ?`;
+    const params: string[] = [psp, timeRange.from, timeRange.to];
+
+    if (paymentMethod) {
+      sql += ` AND payment_method = ?`;
+      params.push(paymentMethod);
+    }
+
+    sql += ` ORDER BY response_time_ms ASC`;
+    const stmt = this.db.prepare(sql);
+    const rows = stmt.all(...params) as { response_time_ms: number }[];
     return rows.map(r => r.response_time_ms);
   }
 

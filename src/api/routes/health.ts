@@ -1,33 +1,33 @@
 import { FastifyInstance } from 'fastify';
 import { MetricsService } from '../../services/metrics.service';
-import { parseTimeRange } from '../schemas/query.schema';
+import { parseQueryFilter } from '../schemas/query.schema';
 
 export async function healthRoutes(fastify: FastifyInstance): Promise<void> {
   const metricsService = new MetricsService();
 
   // GET /api/health - All PSPs metrics + health status
   fastify.get('/api/health', async (request, reply) => {
-    const query = request.query as { from?: string; to?: string };
-    const timeRange = parseTimeRange(query);
-    const result = metricsService.getAllPSPMetrics(timeRange);
+    const query = request.query as { from?: string; to?: string; payment_method?: string };
+    const { timeRange, paymentMethod } = parseQueryFilter(query);
+    const result = metricsService.getAllPSPMetrics(timeRange, paymentMethod);
     return reply.send({ success: true, data: result });
   });
 
   // GET /api/health/scores - Stretch C: Health scores
   // NOTE: Must be registered before :psp param route
   fastify.get('/api/health/scores', async (request, reply) => {
-    const query = request.query as { from?: string; to?: string };
-    const timeRange = parseTimeRange(query);
-    const scores = metricsService.getHealthScores(timeRange);
+    const query = request.query as { from?: string; to?: string; payment_method?: string };
+    const { timeRange, paymentMethod } = parseQueryFilter(query);
+    const scores = metricsService.getHealthScores(timeRange, paymentMethod);
     return reply.send({ success: true, data: { scores } });
   });
 
   // GET /api/health/:psp - Specific PSP metrics + health status
   fastify.get('/api/health/:psp', async (request, reply) => {
     const { psp } = request.params as { psp: string };
-    const query = request.query as { from?: string; to?: string };
-    const timeRange = parseTimeRange(query);
-    const result = metricsService.getPSPMetrics(psp, timeRange);
+    const query = request.query as { from?: string; to?: string; payment_method?: string };
+    const { timeRange, paymentMethod } = parseQueryFilter(query);
+    const result = metricsService.getPSPMetrics(psp, timeRange, paymentMethod);
 
     if (!result) {
       return reply.status(404).send({
@@ -43,7 +43,7 @@ export async function healthRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/api/health/:psp/methods', async (request, reply) => {
     const { psp } = request.params as { psp: string };
     const query = request.query as { from?: string; to?: string };
-    const timeRange = parseTimeRange(query);
+    const { timeRange } = parseQueryFilter(query);
     const methods = metricsService.getPaymentMethodBreakdown(psp, timeRange);
 
     if (methods.length === 0) {
@@ -59,9 +59,9 @@ export async function healthRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /api/health/:psp/trends - Stretch B: Trend detection
   fastify.get('/api/health/:psp/trends', async (request, reply) => {
     const { psp } = request.params as { psp: string };
-    const query = request.query as { from?: string; to?: string };
-    const timeRange = parseTimeRange(query);
-    const trends = metricsService.getTrends(psp, timeRange);
+    const query = request.query as { from?: string; to?: string; payment_method?: string };
+    const { timeRange, paymentMethod } = parseQueryFilter(query);
+    const trends = metricsService.getTrends(psp, timeRange, paymentMethod);
 
     if (!trends) {
       return reply.status(404).send({

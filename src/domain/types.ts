@@ -13,7 +13,7 @@ export const transactionSchema = z.object({
   currency: z.string().length(3),
   status: z.enum(transactionStatusValues),
   response_time_ms: z.number().int().nonnegative(),
-  created_at: z.string().datetime({ offset: true }).or(z.string().min(1)),
+  created_at: z.string().datetime({ offset: true }),
 });
 
 export type TransactionInput = z.infer<typeof transactionSchema>;

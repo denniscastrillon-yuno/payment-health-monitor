@@ -4,6 +4,7 @@ import { config } from './config';
 import { transactionRoutes } from './api/routes/transactions';
 import { healthRoutes } from './api/routes/health';
 import { alertRoutes } from './api/routes/alerts';
+import { eventRoutes } from './api/routes/events';
 import { TransactionRepository } from './infrastructure/repositories/transaction.repository';
 
 export async function buildApp() {
@@ -26,6 +27,7 @@ export async function buildApp() {
   await app.register(transactionRoutes);
   await app.register(healthRoutes);
   await app.register(alertRoutes);
+  await app.register(eventRoutes);
 
   // Global error handler
   app.setErrorHandler((error: FastifyError, _request, reply) => {

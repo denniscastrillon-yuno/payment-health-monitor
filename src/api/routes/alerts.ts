@@ -1,16 +1,16 @@
 import { FastifyInstance } from 'fastify';
 import { AlertService } from '../../services/alert.service';
 import { alertThresholds } from '../../config';
-import { parseTimeRange } from '../schemas/query.schema';
+import { parseQueryFilter } from '../schemas/query.schema';
 
 export async function alertRoutes(fastify: FastifyInstance): Promise<void> {
   const alertService = new AlertService();
 
   // GET /api/alerts - Current alert summary
   fastify.get('/api/alerts', async (request, reply) => {
-    const query = request.query as { from?: string; to?: string };
-    const timeRange = parseTimeRange(query);
-    const summary = alertService.getAlertSummary(timeRange);
+    const query = request.query as { from?: string; to?: string; payment_method?: string };
+    const { timeRange, paymentMethod } = parseQueryFilter(query);
+    const summary = alertService.getAlertSummary(timeRange, paymentMethod);
     return reply.send({ success: true, data: summary });
   });
 
